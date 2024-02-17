@@ -6,8 +6,8 @@ module AbcG4 where
 import Language.ANTLR4
 import Abc
 
-fileHeader :: Information -> b -> Information -> [Either String Information] -> Key -> FileHeader
-fileHeader a _ c d e = FileHeader (a:c:(Key e):(right d)) []
+fileHeader :: a -> Information -> c -> Information -> [Either String Information] -> FileHeader
+fileHeader _ b _ d e = FileHeader ((b:d:(right e))) []
 
 meterFraction :: Int -> Int -> Rational
 meterFraction a b = fromIntegral a / fromIntegral b
@@ -70,7 +70,7 @@ $( return [] )
 [g4|
     grammar Abc;
     abc : abc_header abc_music -> abcFile;
-    abc_header : field_number comment* field_title other_fields* field_key -> fileHeader;
+    abc_header : comment* field_number comment* field_title other_fields* -> fileHeader;
 
     field_number : 'X'':' NUMBER end_of_line -> ${\n _ -> ReferenceNumber (toInteger n)};
     field_title  : 'T'':' TEXT end_of_line   -> ${\t _ -> Title t};
@@ -79,6 +79,7 @@ $( return [] )
                  | field_meter               -> ${\a   -> Right (Meter a)}
                  | field_tempo               -> ${\a   -> Right (Tempo a)}
                  | field_voice               -> ${\a   -> Right (Voice a)}
+                 | field_key                 -> ${\a   -> Right (Key a)}
                  | comment                   -> Left
                  ;
 
@@ -115,11 +116,10 @@ $( return [] )
             | WHITESPACE     -> Left
             ;
 
-    note_element : note
-                 | multi_note -> ${\a -> Sequence a}
-                 ;
+    note_element : note;
 
-    note         : note_or_rest note_length? -> ${\a b -> Chord (Chord_ (a,b))};
+    note         : note_or_rest note_length?         -> ${\a b -> Chord (Chord_ (a,b))}
+                 | '[' note_or_rest ']' note_length? -> ${\a b -> Chord (Chord_ (a,b))};
     note_or_rest : pitch+ | rest;
 
     pitch  : accidental? basenote octave* -> pitch;
@@ -148,8 +148,6 @@ $( return [] )
     tuplet_element : tuplet_spec note_element+ -> ${\a b -> Tuplet a (Sequence b) };
     tuplet_spec : '(' DIGIT -> ${\a -> Duration (fromIntegral a)};
 
-    multi_note : '[' note+ ']';
-
     barline : '|'     -> sb
             | '|' '|' -> dbff
             | '[' '|' -> dbtf
@@ -158,7 +156,7 @@ $( return [] )
             | '|' ':' -> rpft
             ;
 
-    mid_tune_field : field_voice -> ${\v -> [Voice v]};
+    mid_tune_field : '[''V'':' NUMBER ']' end_of_line? -> ${\v _ -> [Voice (VoiceProperties (Just (show v)) Nothing Nothing Nothing)]};
 
     comment : '%' TEXT NEWLINE -> ${\a _ -> a};
     end_of_line : comment | NEWLINE;
