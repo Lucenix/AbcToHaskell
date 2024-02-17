@@ -12,7 +12,7 @@ main = do
   s <- readFile "abegg-schumman"
   case glrParse false s of
     (ResultAccept ast) -> print $ ast2abc ast
-    (ResultSet xs)     -> mapM_ (print) (S.toList xs)
+    (ResultSet xs)     -> mapM_ (print . ast2abc. getAST) (S.toList xs)
     a                  -> print a
 
 false _ = False

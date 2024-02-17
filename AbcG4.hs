@@ -105,7 +105,7 @@ $( return [] )
 
     abc_music : abc_tune+;
     abc_tune  : mid_tune_field? abc_line+ -> abcTune;
-    abc_line  : element* NEWLINE          -> ${\l _ -> right l}
+    abc_line  : element+ NEWLINE          -> ${\l _ -> right l}
               | comment                   -> ${\_ -> []}
               ;
 
